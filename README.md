@@ -1,157 +1,326 @@
-# Agent Development Kit (ADK)
+# ADK Go SDK
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/google-adk)](https://pypi.org/project/google-adk/)
-[![Python Unit Tests](https://github.com/google/adk-python/actions/workflows/python-unit-tests.yml/badge.svg)](https://github.com/google/adk-python/actions/workflows/python-unit-tests.yml)
-[![r/agentdevelopmentkit](https://img.shields.io/badge/Reddit-r%2Fagentdevelopmentkit-FF4500?style=flat&logo=reddit&logoColor=white)](https://www.reddit.com/r/agentdevelopmentkit/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/google/adk-python)
+[![Go Tests](https://github.com/adrienveepee/adk-go/actions/workflows/go-tests.yml/badge.svg)](https://github.com/adrienveepee/adk-go/actions/workflows/go-tests.yml)
 
-<html>
-    <h2 align="center">
-      <img src="https://raw.githubusercontent.com/google/adk-python/main/assets/agent-development-kit.png" width="256"/>
-    </h2>
-    <h3 align="center">
-      An open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.
-    </h3>
-    <h3 align="center">
-      Important Links:
-      <a href="https://google.github.io/adk-docs/">Docs</a>,
-      <a href="https://github.com/google/adk-samples">Samples</a>,
-      <a href="https://github.com/google/adk-java">Java ADK</a> &
-      <a href="https://github.com/google/adk-web">ADK Web</a>.
-    </h3>
-</html>
+## Overview
 
-Agent Development Kit (ADK) is a flexible and modular framework for developing and deploying AI agents. While optimized for Gemini and the Google ecosystem, ADK is model-agnostic, deployment-agnostic, and is built for compatibility with other frameworks. ADK was designed to make agent development feel more like software development, to make it easier for developers to create, deploy, and orchestrate agentic architectures that range from simple tasks to complex workflows.
+The Agent Development Kit (ADK) Go SDK is a comprehensive, code-first Go toolkit for building, evaluating, and deploying sophisticated AI agents. This Go implementation provides full compatibility with the Python ADK architecture while leveraging Go's performance, concurrency, and type safety advantages.
 
+The ADK Go SDK provides:
+- **Rich Agent Types**: LLM agents, workflow agents (sequential, parallel, loop), and custom agents
+- **Comprehensive Tool System**: Function tools, agent tools, example tools, and extensible tool framework
+- **Advanced Features**: Planning, code execution, memory management, and evaluation
+- **Production Ready**: Session management, artifact storage, and robust error handling
+- **High Performance**: Built with Go's concurrency and performance characteristics
 
----
+## Key Features
 
-## ✨ What's new
+### Core Agent Types
 
-- **Agent Config**: Build agents without code. Check out the
-  [Agent Config](https://google.github.io/adk-docs/agents/config/) feature.
+#### LLM Agents
+Powered by Large Language Models with advanced capabilities:
 
-## ✨ Key Features
-
-- **Rich Tool Ecosystem**: Utilize pre-built tools, custom functions,
-  OpenAPI specs, or integrate existing tools to give agents diverse
-  capabilities, all for tight integration with the Google ecosystem.
-
-- **Code-First Development**: Define agent logic, tools, and orchestration
-  directly in Python for ultimate flexibility, testability, and versioning.
-
-- **Modular Multi-Agent Systems**: Design scalable applications by composing
-  multiple specialized agents into flexible hierarchies.
-
-- **Deploy Anywhere**: Easily containerize and deploy agents on Cloud Run or
-  scale seamlessly with Vertex AI Agent Engine.
-
-## 🤖 Agent2Agent (A2A) Protocol and ADK Integration
-
-For remote agent-to-agent communication, ADK integrates with the
-[A2A protocol](https://github.com/google-a2a/A2A/).
-See this [example](https://github.com/a2aproject/a2a-samples/tree/main/samples/python/agents)
-for how they can work together.
-
-## 🚀 Installation
-
-### Stable Release (Recommended)
-
-You can install the latest stable version of ADK using `pip`:
-
-```bash
-pip install google-adk
+```go
+agent := agents.NewAgent(
+    "assistant",
+    "gemini-2.0-flash",
+    "You are a helpful assistant that can search and analyze information.",
+).SetDescription("An intelligent assistant").
+  SetTools([]tools.Tool{searchTool}).
+  SetOutputKey("response")
 ```
 
-The release cadence is roughly bi-weekly.
+#### Workflow Agents
+Orchestrate complex processes with deterministic patterns:
 
-This version is recommended for most users as it represents the most recent official release.
+```go
+// Sequential execution
+sequential := agents.NewSequentialAgent("workflow", []agents.Agent{
+    dataAgent, analysisAgent, reportAgent,
+})
 
-### Development Version
-Bug fixes and new features are merged into the main branch on GitHub first. If you need access to changes that haven't been included in an official PyPI release yet, you can install directly from the main branch:
+// Parallel execution
+parallel := agents.NewParallelAgent("parallel_tasks", []agents.Agent{
+    taskA, taskB, taskC,
+})
 
-```bash
-pip install git+https://github.com/google/adk-python.git@main
+// Loop execution
+loop := agents.NewLoopAgent("iterative_process", []agents.Agent{
+    processAgent,
+}, 5) // Max 5 iterations
 ```
 
-Note: The development version is built directly from the latest code commits. While it includes the newest fixes and features, it may also contain experimental changes or bugs not present in the stable release. Use it primarily for testing upcoming changes or accessing critical fixes before they are officially released.
+#### Custom Agents
+Implement unique logic by extending `BaseAgent`:
 
-## 📚 Documentation
+```go
+type CustomAgent struct {
+    *agents.BaseAgent
+    // Custom fields
+}
 
-Explore the full documentation for detailed guides on building, evaluating, and
-deploying agents:
+func (a *CustomAgent) RunAsync(ctx context.Context, invocationCtx *agents.InvocationContext) (<-chan *events.Event, error) {
+    // Custom implementation
+}
+```
 
-* **[Documentation](https://google.github.io/adk-docs)**
+### Tool System
 
-## 🏁 Feature Highlight
+#### Function Tools
+Wrap Go functions as agent tools:
 
-### Define a single agent:
+```go
+func getWeather(location string) string {
+    // Implementation
+    return "Sunny, 25°C"
+}
 
-```python
-from google.adk.agents import Agent
-from google.adk.tools import google_search
+tool, _ := tools.NewFunctionTool(getWeather)
+tool.Name = "get_weather"
+tool.Description = "Get current weather for a location"
+```
 
-root_agent = Agent(
-    name="search_assistant",
-    model="gemini-2.0-flash", # Or your preferred Gemini model
-    instruction="You are a helpful assistant. Answer user questions using Google Search when needed.",
-    description="An assistant that can search the web.",
-    tools=[google_search]
+#### Agent Tools
+Enable agent-to-agent delegation:
+
+```go
+expertAgent := agents.NewAgent("expert", "gemini-2.0-flash", "I am a domain expert")
+agentTool := tools.NewAgentTool(expertAgent)
+```
+
+### Advanced Features
+
+#### Session Management
+Persistent conversation and state management:
+
+```go
+sessionService := sessions.NewInMemorySessionService()
+session, _ := sessionService.CreateSession("app", "user123", "session456", nil)
+```
+
+#### Memory Services
+Long-term memory and retrieval:
+
+```go
+memoryService := memory.NewInMemoryMemoryService()
+// Or use Vertex AI RAG
+// memoryService := memory.NewVertexAiRagMemoryService()
+```
+
+#### Code Execution
+Safe code execution in multiple languages:
+
+```go
+executor := code_executors.NewUnsafeLocalCodeExecutor()
+result, _ := executor.ExecuteCode(ctx, "print('Hello, World!')", "python", execCtx)
+
+// Or use containerized execution
+containerExec := code_executors.NewContainerCodeExecutor("python:3.9")
+```
+
+#### Planning System
+Multi-step reasoning and planning:
+
+```go
+planner := planners.NewBuiltInPlanner()
+// Or use ReAct planner
+// planner := planners.NewPlanReActPlanner(5)
+```
+
+#### Evaluation Framework
+Comprehensive agent testing and evaluation:
+
+```go
+evaluator := evaluation.NewAgentEvaluator(nil)
+evalSet := &evaluation.EvaluationSet{
+    Name: "Test Suite",
+    TestCases: []*evaluation.EvaluationTestCase{
+        {
+            Name: "Basic Test",
+            Input: &events.Content{
+                Role: "user",
+                Parts: []events.Part{{Text: "What is 2+2?"}},
+            },
+            Expected: &events.Content{
+                Role: "assistant",
+                Parts: []events.Part{{Text: "4"}},
+            },
+        },
+    },
+}
+
+report, _ := evaluator.Evaluate(ctx, agent, evalSet)
+```
+
+## Getting Started
+
+### Installation
+
+```bash
+go mod init your-project
+go get github.com/adrienveepee/adk-go
+```
+
+### Basic Usage
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    
+    "github.com/adrienveepee/adk-go/google/adk/agents"
+    "github.com/adrienveepee/adk-go/google/adk/events"
+    "github.com/adrienveepee/adk-go/google/adk/runners"
+    "github.com/adrienveepee/adk-go/google/adk/sessions"
 )
+
+func main() {
+    ctx := context.Background()
+    
+    // Create an agent
+    agent := agents.NewAgent(
+        "assistant",
+        "gemini-2.0-flash",
+        "You are a helpful assistant.",
+    )
+    
+    // Create session service and runner
+    sessionService := sessions.NewInMemorySessionService()
+    runner := runners.NewRunner(agent, "my_app", sessionService)
+    
+    // Create user message
+    message := &events.Content{
+        Role: "user",
+        Parts: []events.Part{{Text: "Hello, how are you?"}},
+    }
+    
+    // Run the agent
+    eventChan, err := runner.RunAsync(ctx, "user123", "session456", message)
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    // Process events
+    for event := range eventChan {
+        if event.Content != nil && event.Content.Role == "model" {
+            fmt.Printf("Assistant: %s\n", event.Content.Parts[0].Text)
+        }
+    }
+}
 ```
 
-### Define a multi-agent system:
+### Advanced Example
 
-Define a multi-agent system with coordinator agent, greeter agent, and task execution agent. Then ADK engine and the model will guide the agents works together to accomplish the task.
-
-```python
-from google.adk.agents import LlmAgent, BaseAgent
-
-# Define individual agents
-greeter = LlmAgent(name="greeter", model="gemini-2.0-flash", ...)
-task_executor = LlmAgent(name="task_executor", model="gemini-2.0-flash", ...)
-
-# Create parent agent and assign children via sub_agents
-coordinator = LlmAgent(
-    name="Coordinator",
-    model="gemini-2.0-flash",
-    description="I coordinate greetings and tasks.",
-    sub_agents=[ # Assign sub_agents here
-        greeter,
-        task_executor
-    ]
-)
+```go
+// Create a complex multi-agent system
+func createAdvancedSystem() agents.Agent {
+    // Create specialized agents
+    researcher := agents.NewAgent(
+        "researcher",
+        "gemini-2.0-flash",
+        "You research topics thoroughly and provide detailed information.",
+    ).SetTools([]tools.Tool{searchTool, webScrapeTool})
+    
+    analyzer := agents.NewAgent(
+        "analyzer",
+        "gemini-2.0-flash", 
+        "You analyze data and provide insights.",
+    ).SetTools([]tools.Tool{analysisTool})
+    
+    writer := agents.NewAgent(
+        "writer",
+        "gemini-2.0-flash",
+        "You write clear, comprehensive reports.",
+    ).SetOutputKey("final_report")
+    
+    // Create workflow
+    workflow := agents.NewSequentialAgent(
+        "research_workflow",
+        []agents.Agent{researcher, analyzer, writer},
+    )
+    
+    // Create coordinator agent
+    coordinator := agents.NewAgent(
+        "coordinator",
+        "gemini-2.0-flash",
+        "You coordinate complex research tasks.",
+    ).SetDescription("Research coordination system")
+    
+    coordinator.AddSubAgent(workflow)
+    
+    return coordinator
+}
 ```
 
-### Development UI
+## Architecture
 
-A built-in development UI to help you test, evaluate, debug, and showcase your agent(s).
+The ADK Go SDK follows a modular architecture with clear separation of concerns:
 
-<img src="https://raw.githubusercontent.com/google/adk-python/main/assets/adk-web-dev-ui-function-call.png"/>
+```
+google/adk/
+├── agents/           # Agent types and interfaces
+├── tools/            # Tool system and implementations
+├── models/           # LLM model interfaces and implementations
+├── sessions/         # Session and state management
+├── runners/          # Agent execution orchestration
+├── events/           # Event system for agent communication
+├── memory/           # Memory services and storage
+├── artifacts/        # Artifact management
+├── evaluation/       # Agent evaluation framework
+├── examples/         # Example providers
+├── planners/         # Planning and reasoning systems
+└── code_executors/   # Code execution environments
+```
 
-###  Evaluate Agents
+## Model Support
+
+The SDK currently supports:
+- **Gemini 2.0 Flash** - Latest high-performance model
+- **Gemini 1.5 Pro** - Advanced reasoning and long context
+- **Gemini 1.5 Flash** - Fast and efficient
+- **Gemini 1.0 Pro** - Stable baseline model
+
+Additional model providers can be easily added through the LLM interface.
+
+## Development
+
+### Running Tests
 
 ```bash
-adk eval \
-    samples_for_testing/hello_world \
-    samples_for_testing/hello_world/hello_world_eval_set_001.evalset.json
+go test ./google/adk/...
 ```
 
-## 🤝 Contributing
+### Building Examples
 
-We welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please see our
-- [General contribution guideline and flow](https://google.github.io/adk-docs/contributing-guide/).
-- Then if you want to contribute code, please read [Code Contributing Guidelines](./CONTRIBUTING.md) to get started.
+```bash
+go build ./examples/main.go
+./main
+```
 
-## Vibe Coding
+### Contributing
 
-If you are to develop agent via vibe coding the [llms.txt](./llms.txt) and the [llms-full.txt](./llms-full.txt) can be used as context to LLM. While the former one is a summarized one and the later one has the full information in case your LLM has big enough context window.
+This Go SDK aims for complete feature parity with the Python ADK implementation. Contributions are welcome to:
 
-## 📄 License
+- Add missing features from the Python version
+- Implement additional model providers
+- Enhance tool integrations
+- Improve performance and reliability
+- Add comprehensive tests
+
+## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
 
+## Links
+
+- [Python ADK](https://github.com/google/adk-python) - Original Python implementation
+- [ADK Documentation](https://google.github.io/adk-docs) - Comprehensive documentation
+- [ADK Samples](https://github.com/google/adk-samples) - Example projects
+
 ---
 
-*Happy Agent Building!*
+*Building the future of AI agents with Go*
